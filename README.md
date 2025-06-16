@@ -1,6 +1,6 @@
 # OmniPrompt Gateway (OPG)
 
-Multi-model LLM interface with MCP support. Access GPT-4, Claude, and local models through one command-line interface.
+Lightweight Python CLI for multi-model LLM interactions. Supports OpenAI, Anthropic, Ollama, and LM Studio APIs with MCP filesystem tools. Single executable deployment with no dependencies.
 
 ## Quick Start
 
@@ -11,10 +11,12 @@ Multi-model LLM interface with MCP support. Access GPT-4, Claude, and local mode
 
 ## Features
 
-- **Multiple LLMs**: OpenAI GPT-4/3.5, Anthropic Claude, Ollama, LM Studio
-- **MCP Tools**: File system access when enabled
-- **Rich Terminal UI**: Markdown rendering and syntax highlighting
-- **Conversation Management**: Switch models, clear history, save prompts
+- Multiple LLM support: OpenAI GPT-4/3.5, Anthropic Claude, Ollama, LM Studio
+- Model Context Protocol (MCP) integration for filesystem access
+- Rich terminal UI with markdown rendering
+- Seamless model switching within conversations
+- System prompt customization
+- Lightweight design with minimal dependencies
 
 ## Commands
 
@@ -22,6 +24,7 @@ Multi-model LLM interface with MCP support. Access GPT-4, Claude, and local mode
 - `/models` - List available models  
 - `/new [model]` - Start new conversation
 - `/clear` - Clear current conversation
+- `/prompt [text]` - Set system prompt
 - `/quit` - Exit
 
 ## Configuration
@@ -29,43 +32,36 @@ Multi-model LLM interface with MCP support. Access GPT-4, Claude, and local mode
 Edit `.env` file:
 
 ```bash
-# Required
+# Required for cloud models
 OPENAI_API_KEY=your-key-here
 ANTHROPIC_API_KEY=your-key-here
 
-# Optional MCP
+# Optional: MCP filesystem access
 ENABLE_MCP=true
 MCP_FILESYSTEM_PATH=C:/safe/directory
 ```
 
-## Building Executable
+## Building Standalone Executable
 
-To create a standalone executable (not included in repo):
+Create a single executable with no dependencies:
 
-1. Create `build.py` with this content:
-```python
-import subprocess
-import sys
+```bash
+# Install PyInstaller
+python -m pip install pyinstaller
 
-subprocess.run([sys.executable, "-m", "pip", "install", "pyinstaller"])
-subprocess.run([
-    "pyinstaller",
-    "--onefile",
-    "--name", "opg",
-    "--add-data", "robust_mcp_wrapper.py;.",
-    "--hidden-import", "robust_mcp_wrapper",
-    "opg.py"
-])
+# Build executable
+python -m PyInstaller --onefile --name opg --add-data "robust_mcp_wrapper.py;." opg.py
+
+# Output: dist/opg.exe
 ```
 
-2. Run: `python build.py`
-3. Find executable in `dist/opg.exe`
-4. Deploy with `.env.example`
+Deploy with just `opg.exe` and `.env.example`.
 
 ## Requirements
 
-- Python 3.8+
-- Node.js (for MCP features)
+- Python 3.8+ (development only)
+- Node.js (optional, for MCP features)
+- No runtime dependencies for standalone executable
 
 ## License
 
