@@ -10,7 +10,32 @@ from datetime import datetime
 
 try:
 	from dotenv import load_dotenv
-	load_dotenv()
+	# Try loading .env from current directory first, then from exe directory
+	env_loaded = False
+	if os.path.exists('.env'):
+		# Use .env in current working directory
+		load_dotenv()
+		env_loaded = True
+		# Uncomment for debugging: print(f"Loaded .env from current directory: {os.getcwd()}")
+	else:
+		# Look for .env next to the executable
+		if getattr(sys, 'frozen', False):
+			# Running as compiled executable
+			app_dir = os.path.dirname(sys.executable)
+		else:
+			# Running as script
+			app_dir = os.path.dirname(os.path.abspath(__file__))
+		
+		env_path = os.path.join(app_dir, '.env')
+		if os.path.exists(env_path):
+			load_dotenv(env_path)
+			env_loaded = True
+			# Uncomment for debugging: print(f"Loaded .env from: {app_dir}")
+		
+	if not env_loaded:
+		print(f"Note: No .env file found")
+		print(f"Searched in: current directory and {app_dir if 'app_dir' in locals() else 'application directory'}")
+		print(f"Create .env from .env.example and add your API keys")
 except ImportError:
 	print("Error: python-dotenv not installed. Please run: pip install python-dotenv")
 	sys.exit(1)
@@ -35,7 +60,7 @@ from rich.table import Table
 from rich.prompt import Prompt
 console = Console()
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __app_name__ = "OmniPrompt Gateway"
 
 # ---------- configuration ----------
@@ -369,12 +394,13 @@ def main():
 
 	# Initialize MCP if enabled
 	mcp_client = None
-	if MCP_AVAILABLE and os.getenv('ENABLE_MCP', 'true').lower() == 'true':
+	if MCP_AVAILABLE and SimpleMCPClient is not None and os.getenv('ENABLE_MCP', 'true').lower() == 'true':
 		try:
 			mcp_client = SimpleMCPClient()
 			fs_path = os.getenv('MCP_FILESYSTEM_PATH', os.getcwd())
 			mcp_client.add_filesystem_server(fs_path)
-			integrate_mcp_simple(chat, mcp_client)
+			if integrate_mcp_simple is not None:
+				integrate_mcp_simple(chat, mcp_client)
 			console.print("[green]✓ MCP filesystem tools enabled![/green]")
 		except Exception as e:
 			console.print(f"[yellow]Warning: MCP initialization failed: {e}[/yellow]")
@@ -549,7 +575,7 @@ def main():
 					print_formatted_response(response)
 					
 					# Check for MCP tool calls
-					if mcp_client:
+					if mcp_client and extract_and_execute_tool_calls is not None:
 						tool_results = extract_and_execute_tool_calls(response, mcp_client)
 						if tool_results:
 							console.print()  # Add spacing

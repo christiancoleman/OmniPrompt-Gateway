@@ -41,6 +41,17 @@ ENABLE_MCP=true
 MCP_FILESYSTEM_PATH=C:/safe/directory
 ```
 
+### .env File Location
+
+OPG looks for `.env` in two places (in order):
+1. **Current working directory** - where you run the command from
+2. **Next to the executable** - same folder as `opg.exe` or `opg.py`
+
+This allows flexible usage:
+- **Portable**: Keep `.env` with `opg.exe` for consistent settings
+- **Project-specific**: Put different `.env` files in different project folders
+- **Multiple configs**: Run OPG from different directories to use different API keys or settings
+
 ## Building Standalone Executable
 
 Create a single executable with no dependencies:
