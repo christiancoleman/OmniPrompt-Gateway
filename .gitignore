@@ -1,34 +1,30 @@
-# Environment variables
+# Environment and secrets
 .env
-.env.local
-.env.*.local
-# Keep example files
-!.env.example
-!example.env
+*.env.local
 
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
+.venv/
 venv/
-env/
-ENV/
+
+# Build artifacts
+build/
+dist/
+*.spec
+*.exe
 
 # IDE
 .vscode/
 .idea/
-*.swp
-*.swo
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-
-# Temporary files
+# Temporary
 *.tmp
-*.temp
+*.bak
+
+# Build scripts (keep local only)
+build.py

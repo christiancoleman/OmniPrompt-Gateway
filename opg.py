@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Enhanced LLM CLI - Supports OpenAI, Claude, LM Studio, and Ollama with conversation history
+OmniPrompt Gateway (OPG) - Multi-model LLM interface with MCP support
 """
 from __future__ import annotations
 import os, sys, json, textwrap, requests
@@ -15,8 +15,16 @@ except ImportError:
 	print("Error: python-dotenv not installed. Please run: pip install python-dotenv")
 	sys.exit(1)
 
-from robust_mcp_wrapper import RobustMCPClient as SimpleMCPClient, integrate_mcp_simple, extract_and_execute_tool_calls
-
+# MCP imports with fallback
+try:
+	from robust_mcp_wrapper import RobustMCPClient as SimpleMCPClient, integrate_mcp_simple, extract_and_execute_tool_calls
+	MCP_AVAILABLE = True
+except ImportError:
+	print("Warning: MCP module not found. MCP features will be disabled.")
+	MCP_AVAILABLE = False
+	SimpleMCPClient = None
+	integrate_mcp_simple = None
+	extract_and_execute_tool_calls = None
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -26,6 +34,9 @@ from rich.text import Text
 from rich.table import Table
 from rich.prompt import Prompt
 console = Console()
+
+__version__ = "1.0.0"
+__app_name__ = "OmniPrompt Gateway"
 
 # ---------- configuration ----------
 @dataclass
@@ -324,7 +335,7 @@ def print_formatted_response(response: str):
 
 def print_help(chat=None, mcp_client=None):
 	"""Print help information in a nice table"""
-	table = Table(title="LLM Helper Commands", show_header=True, header_style="bold cyan")
+	table = Table(title=f"{__app_name__} Commands", show_header=True, header_style="bold cyan")
 	table.add_column("Command", style="bold green", width=25)
 	table.add_column("Description", style="white")
 	
@@ -358,7 +369,7 @@ def main():
 
 	# Initialize MCP if enabled
 	mcp_client = None
-	if os.getenv('ENABLE_MCP', 'true').lower() == 'true':
+	if MCP_AVAILABLE and os.getenv('ENABLE_MCP', 'true').lower() == 'true':
 		try:
 			mcp_client = SimpleMCPClient()
 			fs_path = os.getenv('MCP_FILESYSTEM_PATH', os.getcwd())
@@ -372,10 +383,10 @@ def main():
 	
 	# Check if we have at least one configured model
 	if not chat.models:
-		console.print("[bold red]Error:[/bold red] No models configured. Please set up API keys in your .env file.")
+		console.print(f"[bold red]Error:[/bold red] No models configured. Please set up API keys in your .env file.")
 		sys.exit(1)
 	
-	console.print("[bold cyan]🚀 LLM Chat CLI[/bold cyan] - Type /help for commands")
+	console.print(f"[bold cyan]🚀 {__app_name__} v{__version__}[/bold cyan] - Type /help for commands")
 	console.print(f"Available models: [bold green]{', '.join(chat.list_models())}[/bold green]")
 	
 	# Start with first available model
@@ -537,7 +548,6 @@ def main():
 					print("\r" + " " * 20 + "\r", end="")  # Clear "Thinking..."
 					print_formatted_response(response)
 					
-					# ADD THIS BLOCK:
 					# Check for MCP tool calls
 					if mcp_client:
 						tool_results = extract_and_execute_tool_calls(response, mcp_client)
@@ -567,7 +577,7 @@ if __name__ == "__main__":
 	# Check for missing API keys
 	models = get_models()
 	if not models:
-		console.print("[bold red]Error:[/bold red] No models available. Please configure at least one API key in your .env file.")
+		console.print(f"[bold red]Error:[/bold red] No models available. Please configure at least one API key in your .env file.")
 		console.print("\n[dim]Example .env file:[/dim]")
 		console.print("[dim]OPENAI_API_KEY=your-openai-key-here[/dim]")
 		console.print("[dim]ANTHROPIC_API_KEY=your-claude-key-here[/dim]")
