@@ -8,13 +8,15 @@ from dataclasses import dataclass, asdict, field
 from typing import Callable, Dict, List, Optional
 from datetime import datetime
 
-# Try to import python-dotenv if available
 try:
 	from dotenv import load_dotenv
 	load_dotenv()
 except ImportError:
 	print("Error: python-dotenv not installed. Please run: pip install python-dotenv")
 	sys.exit(1)
+
+from robust_mcp_wrapper import RobustMCPClient as SimpleMCPClient, integrate_mcp_simple, extract_and_execute_tool_calls
+
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -320,7 +322,7 @@ def print_formatted_response(response: str):
 	markdown = Markdown(response)
 	console.print(Panel(markdown, title="[bold blue]Response[/bold blue]", border_style="blue"))
 
-def print_help(chat=None):
+def print_help(chat=None, mcp_client=None):
 	"""Print help information in a nice table"""
 	table = Table(title="LLM Helper Commands", show_header=True, header_style="bold cyan")
 	table.add_column("Command", style="bold green", width=25)
@@ -339,6 +341,12 @@ def print_help(chat=None):
 	table.add_row("/loadprompt [file]", "Load system prompt from a text file")
 	table.add_row("/showprompt", "Show current system prompt")
 	table.add_row("/quit or /q", "Exit the program")
+
+	if mcp_client:
+		table.add_row("", "")  # Spacer
+		table.add_row("[dim]MCP Tools[/dim]", "[dim]When MCP is enabled:[/dim]")
+		table.add_row("", "LLMs can use filesystem tools")
+		table.add_row("", "Look for ```mcp-tool blocks")
 	
 	console.print(table)
 	console.print("\n[dim]Tip: For single-line prompts with line breaks, use \\\\n[/dim]")
@@ -347,6 +355,20 @@ def print_help(chat=None):
 def main():
 	"""Main CLI loop"""
 	chat = LLMChat()
+
+	# Initialize MCP if enabled
+	mcp_client = None
+	if os.getenv('ENABLE_MCP', 'true').lower() == 'true':
+		try:
+			mcp_client = SimpleMCPClient()
+			fs_path = os.getenv('MCP_FILESYSTEM_PATH', os.getcwd())
+			mcp_client.add_filesystem_server(fs_path)
+			integrate_mcp_simple(chat, mcp_client)
+			console.print("[green]✓ MCP filesystem tools enabled![/green]")
+		except Exception as e:
+			console.print(f"[yellow]Warning: MCP initialization failed: {e}[/yellow]")
+			console.print("[dim]Continuing without MCP support...[/dim]")
+			mcp_client = None
 	
 	# Check if we have at least one configured model
 	if not chat.models:
@@ -379,7 +401,7 @@ def main():
 					break
 					
 				elif command == "/help":
-					print_help(chat)
+					print_help(chat, mcp_client)
 					
 				elif command == "/models":
 					table = Table(title="Available Models", show_header=True, header_style="bold cyan")
@@ -484,7 +506,7 @@ def main():
 					else:
 						console.print("[red]No active conversation[/red]")
 						
-				elif command == "/loadprompt":
+				elif command == "/loadprompt":		
 					if not args:
 						console.print("[red]Please provide a file path.[/red] Usage: /loadprompt path/to/prompt.txt")
 					elif not chat.current_conversation:
@@ -514,6 +536,20 @@ def main():
 					response = chat.get_response(user_input)
 					print("\r" + " " * 20 + "\r", end="")  # Clear "Thinking..."
 					print_formatted_response(response)
+					
+					# ADD THIS BLOCK:
+					# Check for MCP tool calls
+					if mcp_client:
+						tool_results = extract_and_execute_tool_calls(response, mcp_client)
+						if tool_results:
+							console.print()  # Add spacing
+							for result in tool_results:
+								console.print(Panel(
+									result, 
+									title="[bold green]MCP Tool Result[/bold green]", 
+									border_style="green"
+								))
+				
 				except Exception as e:
 					print("\r" + " " * 20 + "\r", end="")  # Clear "Thinking..."
 					console.print(f"\n[bold red]❌ Error:[/bold red] {e}")
@@ -523,6 +559,9 @@ def main():
 		except EOFError:
 			console.print("\n[yellow]Goodbye![/yellow]")
 			break
+
+	if mcp_client:
+		mcp_client.cleanup()
 
 if __name__ == "__main__":
 	# Check for missing API keys
