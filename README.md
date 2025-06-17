@@ -52,22 +52,6 @@ This allows flexible usage:
 - **Project-specific**: Put different `.env` files in different project folders
 - **Multiple configs**: Run OPG from different directories to use different API keys or settings
 
-## Building Standalone Executable
-
-Create a single executable with no dependencies:
-
-```bash
-# Install PyInstaller
-python -m pip install pyinstaller
-
-# Build executable
-python -m PyInstaller --onefile --name opg --add-data "robust_mcp_wrapper.py;." opg.py
-
-# Output: dist/opg.exe
-```
-
-Deploy with just `opg.exe` and `.env.example`.
-
 ## Requirements
 
 - Python 3.8+ (development only)
