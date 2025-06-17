@@ -14,7 +14,7 @@ from cli import CLIInterface
 from rich.console import Console
 console = Console()
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 __app_name__ = "OmniPrompt Gateway"
 
 # Load environment configuration
