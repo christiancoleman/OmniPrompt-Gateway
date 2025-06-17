@@ -58,7 +58,7 @@ def get_mcp_config() -> tuple[bool, Optional[Any], Optional[Any], Optional[Any]]
 		tuple: (MCP_AVAILABLE, SimpleMCPClient, integrate_mcp_simple, extract_and_execute_tool_calls)
 	"""
 	try:
-		from robust_mcp_wrapper import RobustMCPClient as SimpleMCPClient, integrate_mcp_simple, extract_and_execute_tool_calls
+		from core.mcp_client import RobustMCPClient as SimpleMCPClient, integrate_mcp_simple, extract_and_execute_tool_calls
 		return True, SimpleMCPClient, integrate_mcp_simple, extract_and_execute_tool_calls
 	except ImportError:
 		print("Warning: MCP module not found. MCP features will be disabled.")
