@@ -6,7 +6,7 @@ from core import LLMChat, mcp_manager
 from .commands import CommandHandler
 from .formatting import (
 	console, print_formatted_response, print_mcp_tool_result,
-	print_error, print_success, print_info
+	print_error, print_success, print_info, print_grouped_models
 )
 
 
@@ -17,8 +17,9 @@ class CLIInterface:
 		self.app_name = app_name
 		self.version = version
 		self.chat = LLMChat()
-		self.command_handler = CommandHandler(self.chat, app_name)
+		self.command_handler = CommandHandler(self.chat, app_name, self)
 		self.mcp_client = None
+		self.show_model_in_prompt = True  # Flag to control model display in prompt
 	
 	def initialize(self):
 		"""Initialize the CLI interface"""
@@ -32,18 +33,26 @@ class CLIInterface:
 		
 		# Welcome message
 		console.print(f"[bold cyan]🚀 {self.app_name} v{self.version}[/bold cyan] - Type /help for commands")
-		console.print(f"Available models: [bold green]{', '.join(self.chat.list_models())}[/bold green]")
 		
 		# Start with first available model
 		default_model = list(self.chat.models.keys())[0]
 		console.print(f"\n[dim]Starting conversation with [/dim][bold green]{default_model}[/bold green]")
 		self.chat.start_new_conversation(default_model)
+				# Show models grouped by provider
+		print_grouped_models(self.chat.models, default_model)
 	
 	def run(self):
 		"""Run the main CLI loop"""
 		while True:
 			try:
-				user_input = input("\n> ").strip()
+				# Create prompt based on status setting
+				if self.show_model_in_prompt and self.chat.current_conversation:
+					current_model = self.chat.current_conversation.model_name
+					prompt_text = f"{current_model}> "
+				else:
+					prompt_text = "> "
+				
+				user_input = input(prompt_text).strip()
 				
 				if not user_input:
 					continue
@@ -62,8 +71,7 @@ class CLIInterface:
 			except EOFError:
 				console.print("\n[yellow]Goodbye![/yellow]")
 				break
-		
-		# Cleanup
+				# Cleanup
 		self.cleanup()
 	
 	def _handle_user_message(self, user_input: str):
@@ -92,3 +100,8 @@ class CLIInterface:
 	def cleanup(self):
 		"""Cleanup resources"""
 		mcp_manager.cleanup()
+	
+	def toggle_status_display(self) -> bool:
+		"""Toggle the model display in prompt and return new state"""
+		self.show_model_in_prompt = not self.show_model_in_prompt
+		return self.show_model_in_prompt

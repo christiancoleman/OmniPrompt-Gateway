@@ -7,16 +7,17 @@ from core import LLMChat, mcp_manager
 from config.models import get_available_providers, set_provider_models, get_models
 from .formatting import (
 	console, print_help, print_models_table, print_conversation_history,
-	print_error, print_success, print_info
+	print_error, print_success, print_info, print_grouped_models
 )
 
 
 class CommandHandler:
 	"""Handles CLI command processing"""
 	
-	def __init__(self, chat: LLMChat, app_name: str):
+	def __init__(self, chat: LLMChat, app_name: str, interface=None):
 		self.chat = chat
 		self.app_name = app_name
+		self.interface = interface
 	
 	def handle_command(self, user_input: str) -> bool:
 		"""
@@ -41,7 +42,7 @@ class CommandHandler:
 			
 		elif command == "/models":
 			current_model = self.chat.current_conversation.model_name if self.chat.current_conversation else None
-			print_models_table(self.chat.list_models(), current_model)
+			print_grouped_models(self.chat.models, current_model)
 			
 		elif command == "/new":
 			self._handle_new_command(args)
@@ -72,6 +73,9 @@ class CommandHandler:
 			
 		elif command == "/changemodels":
 			self._handle_changemodels_command()
+			
+		elif command == "/status":
+			self._handle_status_command(args)
 			
 		else:
 			print_error(f"Unknown command: {command}. Type /help for commands.")
@@ -236,6 +240,16 @@ class CommandHandler:
 						# Reload models in chat
 						self.chat.models = get_models()
 						
+						# Check if current conversation's model is still available
+						if (self.chat.current_conversation and 
+							self.chat.current_conversation.model_name not in self.chat.models):
+							print_info(f"Current model '{self.chat.current_conversation.model_name}' is no longer available.")
+							# Start with first available model
+							if self.chat.models:
+								new_model = list(self.chat.models.keys())[0]
+								self.chat.start_new_conversation(new_model)
+								print_info(f"Switched to '{new_model}'")
+						
 						print_success(f"Updated {provider_name} models: {', '.join(new_models)}")
 						print_info("Changes will persist for this session. Update .env file to make permanent.")
 					else:
@@ -246,3 +260,23 @@ class CommandHandler:
 				print_error("Invalid selection")
 		except ValueError:
 			print_error("Please enter a valid number")
+
+	def _handle_status_command(self, args: str):
+		"""Handle /status command to toggle status display"""
+		if not self.interface:
+			print_error("Status control not available")
+			return
+		
+		if args.lower() in ["off", "hide", "disable"]:
+			self.interface.show_model_in_prompt = False
+			print_success("Status display disabled. Prompt will show: > ")
+		elif args.lower() in ["on", "show", "enable"]:
+			self.interface.show_model_in_prompt = True
+			print_success("Status display enabled. Prompt will show: model> ")
+		else:
+			# Show current status and toggle
+			current_state = self.interface.toggle_status_display()
+			if current_state:
+				print_success("Status display enabled. Prompt will show: model> ")
+			else:
+				print_success("Status display disabled. Prompt will show: > ")

@@ -5,10 +5,53 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
+from rich.align import Align
+from rich.text import Text
+from typing import Dict, List, Optional
 
 from core import mcp_manager
 
 console = Console()
+
+
+def create_status_display(current_model: Optional[str] = None) -> Panel:
+	"""Create a status display panel showing current model"""
+	if current_model:
+		status_text = Text(f"Current Model: {current_model}", style="bold green")
+	else:
+		status_text = Text("No Active Model", style="bold red")
+	
+	return Panel(
+		Align.center(status_text),
+		title="Status",
+		border_style="cyan",
+		height=3
+	)
+
+
+def print_grouped_models(models_dict, current_model: Optional[str] = None):
+	"""Print models grouped by provider with proper indentation"""
+	# Group models by provider
+	provider_models = {}
+	for model_name, model_obj in models_dict.items():
+		provider = model_obj.provider
+		if provider not in provider_models:
+			provider_models[provider] = []
+		provider_models[provider].append(model_name)
+	
+	console.print("\n[bold cyan]Available Models by Provider:[/bold cyan]")
+	
+	for provider, models in provider_models.items():
+		# Print provider name
+		console.print(f"[bold yellow]{provider}:[/bold yellow]")
+		
+		# Print each model indented
+		for model in models:
+			if model == current_model:
+				console.print(f"    [bold green]• {model}[/bold green] [dim](current)[/dim]")
+			else:
+				console.print(f"    • {model}")
+	console.print()
 
 
 def print_formatted_response(response: str):
@@ -26,7 +69,7 @@ def print_help(app_name: str, chat=None, mcp_client=None):
 	
 	# Add commands to table
 	table.add_row("/help", "Show this help menu")
-	table.add_row("/models", "List available models")
+	table.add_row("/models", "List available models grouped by provider")
 	table.add_row("/new [model]", "Start new conversation with specified model")
 	table.add_row("/history", "Show conversation history")
 	table.add_row("/clear", "Clear current conversation (keeps model)")
@@ -37,6 +80,7 @@ def print_help(app_name: str, chat=None, mcp_client=None):
 	table.add_row("/loadprompt [file]", "Load system prompt from a text file")
 	table.add_row("/showprompt", "Show current system prompt")
 	table.add_row("/changemodels", "Change available models for any provider")
+	table.add_row("/status [on/off]", "Toggle model name in prompt (model> vs >)")
 	table.add_row("/quit or /q", "Exit the program")
 
 	if mcp_manager.is_available():
@@ -105,3 +149,6 @@ def print_mcp_tool_result(result: str):
 		title="[bold green]MCP Tool Result[/bold green]", 
 		border_style="green"
 	))
+
+
+

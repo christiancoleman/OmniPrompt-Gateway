@@ -50,8 +50,17 @@ class LLMChat:
 		# Add user message
 		self.add_message("user", user_input)
 		
-		# Get model and adapter
-		model = self.models[self.current_conversation.model_name]
+		# Get model and adapter - ensure we're using the correct current model
+		current_model_name = self.current_conversation.model_name
+		
+		# Check if the model exists in our current models dictionary
+		if current_model_name not in self.models:
+			# Remove the user message since we're about to fail
+			self.current_conversation.messages.pop()
+			available_models = ", ".join(self.models.keys())
+			raise ValueError(f"Model '{current_model_name}' is not available. Available models: {available_models}")
+		
+		model = self.models[current_model_name]
 		
 		# Get response
 		try:
@@ -62,7 +71,8 @@ class LLMChat:
 		except Exception as e:
 			# Remove the user message if there was an error
 			self.current_conversation.messages.pop()
-			raise
+			# Re-raise with additional context about which model failed
+			raise Exception(f"Error with model '{current_model_name}': {str(e)}")
 			
 	def list_models(self) -> List[str]:
 		"""List available models"""
@@ -101,6 +111,5 @@ class LLMChat:
 		
 		for msg in self.current_conversation.messages:
 			if msg.role == "system":
-				return msg.content
-		
+				return msg.content		
 		return None
