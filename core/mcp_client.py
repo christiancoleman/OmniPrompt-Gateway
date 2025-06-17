@@ -214,7 +214,7 @@ class RobustMCPClient:
 					'description': tool.get('description', ''),
 					'inputSchema': tool.get('inputSchema', {})
 				}
-			console.print(f"[green]✓ Found {len(tools)} tools[/green]")
+			console.print(f"\n[green]✓ Found {len(tools)} tools[/green]")
 		
 		console.print(f"[green]✓ Server '{name}' connected successfully[/green]")
 		

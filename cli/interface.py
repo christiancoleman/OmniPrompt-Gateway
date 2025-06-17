@@ -36,7 +36,7 @@ class CLIInterface:
 		
 		# Start with first available model
 		default_model = list(self.chat.models.keys())[0]
-		console.print(f"\n[dim]Starting conversation with [bold]{default_model}[/bold][/dim]")
+		console.print(f"\n[dim]Starting conversation with [/dim][bold green]{default_model}[/bold green]")
 		self.chat.start_new_conversation(default_model)
 	
 	def run(self):

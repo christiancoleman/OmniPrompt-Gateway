@@ -56,7 +56,7 @@ class MCPManager:
 			if self.integrate_mcp_simple is not None:
 				self.integrate_mcp_simple(chat_instance, self.mcp_client)
 				
-			console.print("[green]✓ MCP filesystem tools enabled![/green]")
+			console.print("[green]✓ MCP filesystem tools enabled![/green]\n")
 			return self.mcp_client
 			
 		except Exception as e:
