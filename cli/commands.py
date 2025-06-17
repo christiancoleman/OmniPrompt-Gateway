@@ -4,6 +4,7 @@ CLI command handling for OmniPrompt Gateway
 from rich.panel import Panel
 
 from core import LLMChat, mcp_manager
+from config.models import get_available_providers, set_provider_models, get_models
 from .formatting import (
 	console, print_help, print_models_table, print_conversation_history,
 	print_error, print_success, print_info
@@ -68,6 +69,9 @@ class CommandHandler:
 			
 		elif command == "/loadprompt":
 			self._handle_loadprompt_command(args)
+			
+		elif command == "/changemodels":
+			self._handle_changemodels_command()
 			
 		else:
 			print_error(f"Unknown command: {command}. Type /help for commands.")
@@ -176,3 +180,69 @@ class CommandHandler:
 				print_error(f"File not found: {args.strip()}")
 			except Exception as e:
 				print_error(f"Error reading file: {e}")
+	
+	def _handle_changemodels_command(self):
+		"""Handle /changemodels command"""
+		# Get available providers
+		providers = get_available_providers()
+		
+		# Display provider options
+		print_info("Available providers:")
+		for i, (provider, available, models) in enumerate(providers, 1):
+			status = "[green]Available[/green]" if available else "[red]Not configured[/red]"
+			console.print(f"{i}. {provider} - {status}")
+			if available and models:
+				console.print(f"   Current models: {', '.join(models)}")
+		
+		console.print("\nSelect a provider (number) or 'cancel' to exit:")
+		choice = input("> ").strip()
+		
+		if choice.lower() == 'cancel':
+			print_info("Cancelled model configuration")
+			return
+		
+		try:
+			provider_idx = int(choice) - 1
+			if 0 <= provider_idx < len(providers):
+				provider_name, available, current_models = providers[provider_idx]
+				
+				if not available:
+					print_error(f"Provider '{provider_name}' is not configured. Please set up the API key first.")
+					return
+				
+				# Ask for model list
+				console.print(f"\nEnter model IDs for {provider_name} (comma-separated):")
+				if current_models:
+					console.print(f"Current: {', '.join(current_models)}")
+				console.print("Examples:")
+				
+				if provider_name == "openai":
+					console.print("  gpt-3.5-turbo, gpt-4, gpt-4o")
+				elif provider_name == "anthropic":
+					console.print("  claude-3-opus-20240229, claude-3-sonnet-20240229")
+				elif provider_name == "local-lmstudio":
+					console.print("  Model names as shown in LM Studio")
+				elif provider_name == "local-ollama":
+					console.print("  llama2, mistral, codellama")
+				
+				model_input = input("> ").strip()
+				
+				if model_input:
+					new_models = [m.strip() for m in model_input.split(",") if m.strip()]
+					if new_models:
+						# Update provider models
+						set_provider_models(provider_name, new_models)
+						
+						# Reload models in chat
+						self.chat.models = get_models()
+						
+						print_success(f"Updated {provider_name} models: {', '.join(new_models)}")
+						print_info("Changes will persist for this session. Update .env file to make permanent.")
+					else:
+						print_error("No models specified")
+				else:
+					print_info("No changes made")
+			else:
+				print_error("Invalid selection")
+		except ValueError:
+			print_error("Please enter a valid number")

@@ -36,6 +36,7 @@ def print_help(app_name: str, chat=None, mcp_client=None):
 	table.add_row("/setdefault+", "Set multi-line default prompt (end with 'END')")
 	table.add_row("/loadprompt [file]", "Load system prompt from a text file")
 	table.add_row("/showprompt", "Show current system prompt")
+	table.add_row("/changemodels", "Change available models for any provider")
 	table.add_row("/quit or /q", "Exit the program")
 
 	if mcp_manager.is_available():
