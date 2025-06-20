@@ -93,6 +93,10 @@ This allows flexible usage:
 - Node.js (optional, for MCP features)
 - No runtime dependencies for standalone executable
 
+## System Abstractions
+
+<img src="./opg-flow-diagram.svg">
+
 ## License
 
 MIT
