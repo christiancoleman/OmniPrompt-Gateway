@@ -125,7 +125,11 @@ def get_models() -> Dict[str, Model]:
 				system_prompt=system_prompt,
 				adapter=config["adapter"],
 				temperature=temperature,
-				max_tokens=max_tokens
+				max_tokens=max_tokens,
+				# Mark OpenAI models as supporting API switching
+				supports_api_switching=(provider == "openai"),
+				# Set variant name for Responses API
+				api_variant_name=f"{model_id} (Responses)" if provider == "openai" else None
 			)
 	
 	return models

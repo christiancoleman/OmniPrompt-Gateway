@@ -22,3 +22,8 @@ class Model:
 	adapter: Callable        # Function that does POST + parses JSON
 	max_tokens: int = 4096    # Max tokens in response
 	temperature: float = 0.7  # Default temperature
+	
+	# API type support
+	api_type: str = "chat_completions"  # "chat_completions" or "responses"
+	supports_api_switching: bool = False  # Whether this model can switch APIs
+	api_variant_name: str | None = None   # Name of the variant when switching APIs

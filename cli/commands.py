@@ -77,6 +77,9 @@ class CommandHandler:
 		elif command == "/status":
 			self._handle_status_command(args)
 			
+		elif command == "/api":
+			self._handle_api_command()
+			
 		else:
 			print_error(f"Unknown command: {command}. Type /help for commands.")
 		
@@ -280,3 +283,74 @@ class CommandHandler:
 				print_success("Status display enabled. Prompt will show: model> ")
 			else:
 				print_success("Status display disabled. Prompt will show: > ")
+	
+	def _handle_api_command(self):
+		"""Handle /api command to switch between Chat Completions and Responses API"""
+		if not self.chat.current_conversation:
+			print_error("No active conversation. Start one with /new [model]")
+			return
+		
+		# Get current model
+		current_model_name = self.chat.current_conversation.model_name
+		current_model = self.chat.models.get(current_model_name)
+		
+		if not current_model:
+			print_error(f"Model '{current_model_name}' not found")
+			return
+		
+		# Check if model supports API switching
+		if not current_model.supports_api_switching:
+			print_error(f"API switching is not available for {current_model.provider} models")
+			print_info("Only OpenAI models support switching between Chat Completions and Responses API")
+			return
+		
+		# Import copy to create variant
+		import copy
+		
+		# Determine current API type and create new variant
+		if current_model.api_type == "chat_completions":
+			# Switch to Responses API
+			console.print("\n[cyan]Switching to Responses API (stateful)...[/cyan]")
+			
+			# Create a new model variant for Responses API
+			new_model = copy.deepcopy(current_model)
+			new_model.name = current_model.api_variant_name or f"{current_model.model_id} (Responses)"
+			new_model.api_type = "responses"
+			new_model.endpoint = current_model.endpoint.replace("/chat/completions", "/responses")
+			
+			# Add to models temporarily if not already there
+			if new_model.name not in self.chat.models:
+				self.chat.models[new_model.name] = new_model
+			
+			# Start new conversation with Responses API
+			self.chat.start_new_conversation(new_model.name, self.chat.get_current_system_prompt())
+			print_success(f"Switched to {new_model.name}")
+			print_info("Responses API features:")
+			print_info("  • Server-side conversation memory")
+			print_info("  • Simplified API calls")
+			print_info("  • Built-in tools support (coming soon)")
+			
+		else:
+			# Switch back to Chat Completions API
+			console.print("\n[cyan]Switching to Chat Completions API (stateless)...[/cyan]")
+			
+			# Find the original model name (remove " (Responses)" suffix)
+			original_model_id = current_model.model_id
+			
+			if original_model_id in self.chat.models:
+				# Clear any cached response IDs from the adapter
+				from adapters.openai import openai_adapter_instance
+				openai_adapter_instance.clear_cache(current_model.name)
+				
+				# Start new conversation with Chat Completions API
+				self.chat.start_new_conversation(original_model_id, self.chat.get_current_system_prompt())
+				print_success(f"Switched to {original_model_id}")
+				print_info("Chat Completions API features:")
+				print_info("  • Full conversation history control")
+				print_info("  • Compatible with local models")
+				print_info("  • Traditional request/response model")
+			else:
+				print_error(f"Could not find standard model '{original_model_id}'")
+		
+		# Remind user about conversation reset
+		print_info("\nNote: A new conversation has been started with the selected API.")

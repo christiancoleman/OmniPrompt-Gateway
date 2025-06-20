@@ -33,7 +33,27 @@ Lightweight Python CLI for multi-model LLM interactions. Supports OpenAI, Anthro
 - `/loadprompt [file]` - Load system prompt from a text file
 - `/showprompt` - Show current system prompt
 - `/changemodels` - Change available models for any provider
+- `/api` - Switch between Chat Completions and Responses API (OpenAI only)
 - `/quit` - Exit
+
+## API Switching (OpenAI)
+
+OPG supports both OpenAI API types:
+
+- **Chat Completions API** (default): Traditional stateless API where you manage conversation history
+- **Responses API**: New stateful API where OpenAI maintains conversation context server-side
+
+Use the `/api` command while in an OpenAI conversation to switch between them. Each switch creates a new conversation.
+
+### Responses API Benefits:
+- Server-side conversation memory
+- Simplified API calls (only send new messages)
+- Built-in tools support (web search, code interpreter) - coming soon
+
+### Chat Completions API Benefits:
+- Full control over conversation history
+- Compatible with local models (LM Studio)
+- Traditional request/response model
 
 ## Configuration
 
