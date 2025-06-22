@@ -21,6 +21,10 @@ class OpenAIAdapter:
 		if model.api_type == "responses":
 			return self.responses_api(model, messages)
 		else:
+			if model.model_id.startswith("o"):  # OpenAI models start with 'o'
+				print("Switching to Responses API for this OpenAI model... All models starting with 'o' must use the Responses API.")
+				model.api_type = "responses"  # Default to Responses API for OpenAI models that start with 'o'
+				return self.responses_api(model, messages)
 			return self.chat_completions_api(model, messages)
 	
 	def chat_completions_api(self, model: Model, messages: List[Message]) -> str:
@@ -43,12 +47,8 @@ class OpenAIAdapter:
 		}
 		
 		try:
-			delim("Chat Completions API payload")
-			debug(payload)
 			r = requests.post(model.endpoint, headers=headers, json=payload, timeout=60)
 			r.raise_for_status()
-			delim("Chat Completions API response")
-			debug(r.json())
 			return r.json()["choices"][0]["message"]["content"].strip()
 		except Exception as e:
 			return self._handle_error(e, current_model_id)
@@ -93,12 +93,8 @@ class OpenAIAdapter:
 				payload["instructions"] = system_messages[0].content
 		
 		try:
-			delim("Responses API payload")
-			debug(payload)
 			r = requests.post(model.endpoint, headers=headers, json=payload, timeout=60)
 			r.raise_for_status()
-			delim("Responses API response")
-			debug(r.json())
 			response_data = r.json()
 			
 			# Cache the response ID for next call
@@ -106,31 +102,15 @@ class OpenAIAdapter:
 			
 			# Extract the response text
 			if "output_text" in response_data:
-				print(0)
 				return response_data["output_text"].strip()
 			elif "output" in response_data and response_data["output"]:
 				# Handle structured output format
 				output_messages = response_data["output"]
-				print(1)
 				if output_messages and isinstance(output_messages, list):
-					print(2)
 					first_msg = output_messages[0]
-					second_msg = output_messages[1] if len(output_messages) > 1 else None
-					print(first_msg)
-					print(second_msg)
 					if "content" in first_msg and isinstance(first_msg["content"], list):
-						print(3)
 						for content in first_msg["content"]:
-							print(4)
 							if content.get("type") == "output_text":
-								print(5)
-								return content.get("text", "").strip()
-					print(6)
-					if second_msg and "content" in second_msg and isinstance(second_msg["content"], list):
-						for content in second_msg["content"]:
-							print(7)
-							if content.get("type") == "output_text":
-								print(85)
 								return content.get("text", "").strip()
 			
 			raise Exception(f"Unexpected Responses API format for model '{current_model_id}'")
@@ -179,17 +159,3 @@ openai_adapter_instance = OpenAIAdapter()
 def openai_chat(model: Model, messages: List[Message]) -> str:
 	"""Adapter for OpenAI API (also works for OpenAI-compatible APIs)"""
 	return openai_adapter_instance(model, messages)
-
-def delim(thing: str):
-	print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-	print("%%%%%%%%%%%%%%%%%%%%%%" + thing + "%%%%%%%%%%%%%%%%%%%%%%")
-
-from typing import Any
-
-def debug(toDump: Any):
-	"""Debug function to print JSON payloads"""
-	try:
-		import json as json_module
-		print(json_module.dumps(toDump, indent=4))
-	except Exception as e:
-		print(f"Error printing JSON: {str(e)}")
