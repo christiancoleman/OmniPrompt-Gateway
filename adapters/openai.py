@@ -96,6 +96,8 @@ class OpenAIAdapter:
 			r = requests.post(model.endpoint, headers=headers, json=payload, timeout=60)
 			r.raise_for_status()
 			response_data = r.json()
+
+			# print(response_data)  # Debug: print the full response
 			
 			# Cache the response ID for next call
 			self.response_cache[cache_key] = response_data["id"]
@@ -108,11 +110,19 @@ class OpenAIAdapter:
 				output_messages = response_data["output"]
 				if output_messages and isinstance(output_messages, list):
 					first_msg = output_messages[0]
-					if "content" in first_msg and isinstance(first_msg["content"], list):
+					print(first_msg)
+					if is_json_key_present(first_msg, "content"):
 						for content in first_msg["content"]:
 							if content.get("type") == "output_text":
 								return content.get("text", "").strip()
-			
+					if len(output_messages) > 1:
+						second_msg = output_messages[1]
+						print(second_msg)
+						if is_json_key_present(second_msg, "content"):
+							for content in second_msg["content"]:
+								if content.get("type") == "output_text":
+									return content.get("text", "").strip()
+
 			raise Exception(f"Unexpected Responses API format for model '{current_model_id}'")
 			
 		except Exception as e:
@@ -159,3 +169,10 @@ openai_adapter_instance = OpenAIAdapter()
 def openai_chat(model: Model, messages: List[Message]) -> str:
 	"""Adapter for OpenAI API (also works for OpenAI-compatible APIs)"""
 	return openai_adapter_instance(model, messages)
+
+def is_json_key_present(json, key):
+	try:
+		buf = json[key]
+	except KeyError:
+		return False
+	return True
